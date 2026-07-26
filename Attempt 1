@@ -1,0 +1,214 @@
+using System;
+using System.Collections.Generic;
+
+namespace ContractorProject
+{
+    /// <summary>
+    /// Base class representing a general Contractor.
+    /// Meets PLO2-4 (3+ attributes), PLO2-2 (Constructor), and PLO2-3 (Accessors/Mutators).
+    /// </summary>
+    public class Contractor
+    {
+        // Private attributes (Encapsulation)
+        private string name;
+        private string number;
+        private string startDate;
+
+        // Default Constructor
+        public Contractor()
+        {
+            name = "Unknown";
+            number = "000-A";
+            startDate = "01/01/2000";
+        }
+
+        // Parameterized Constructor
+        public Contractor(string name, string number, string startDate)
+        {
+            Name = name;
+            Number = number;
+            StartDate = startDate;
+        }
+
+        // Accessors and Mutators (Properties with Getters and Setters)
+        public string Name
+        {
+            get { return name; }
+            set { name = value; }
+        }
+
+        public string Number
+        {
+            get { return number; }
+            set { number = value; }
+        }
+
+        public string StartDate
+        {
+            get { return startDate; }
+            set { startDate = value; }
+        }
+    }
+
+    /// <summary>
+    /// Derived class representing a Subcontractor with pay differential calculations.
+    /// Meets PLO-3-4 (Derived Sub-Class with additional attributes and functionality).
+    /// </summary>
+    public class Subcontractor : Contractor
+    {
+        // Additional attributes
+        private int shift; // 1 for Day, 2 for Night
+        private double hourlyPayRate;
+
+        // Default Constructor
+        public Subcontractor() : base()
+        {
+            shift = 1;
+            hourlyPayRate = 0.0;
+        }
+
+        // Parameterized Constructor initializing base and derived attributes
+        public Subcontractor(string name, string number, string startDate, int shift, double hourlyPayRate)
+            : base(name, number, startDate)
+        {
+            Shift = shift;
+            HourlyPayRate = hourlyPayRate;
+        }
+
+        // Accessors and Mutators
+        public int Shift
+        {
+            get { return shift; }
+            set
+            {
+                // Basic validation: default to Day shift (1) if invalid
+                if (value == 1 || value == 2)
+                    shift = value;
+                else
+                    shift = 1;
+            }
+        }
+
+        public double HourlyPayRate
+        {
+            get { return hourlyPayRate; }
+            set { hourlyPayRate = value < 0 ? 0 : value; }
+        }
+
+        /// <summary>
+        /// Computes base pay or applies a 3% shift differential for night shift (Shift 2).
+        /// </summary>
+        /// <param name="hoursWorked">Number of hours worked</param>
+        /// <returns>Total calculated pay as a float</returns>
+        public float ComputePay(float hoursWorked)
+        {
+            if (hoursWorked < 0) hoursWorked = 0;
+
+            double totalPay = hourlyPayRate * hoursWorked;
+
+            // Apply 3% shift differential for Night shift (2)
+            if (shift == 2)
+            {
+                totalPay *= 1.03;
+            }
+
+            return (float)totalPay;
+        }
+    }
+
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            List<Subcontractor> subcontractors = new List<Subcontractor>();
+            bool keepAdding = true;
+
+            Console.WriteLine("==================================================");
+            Console.WriteLine("      CONTRACTOR MANAGEMENT SYSTEM                ");
+            Console.WriteLine("==================================================\n");
+
+            // Repetition Control Structure allowing creation of as many instances as needed
+            while (keepAdding)
+            {
+                Console.WriteLine("--- Enter New Subcontractor Information ---");
+
+                Console.Write("Enter Name: ");
+                string name = Console.ReadLine();
+
+                Console.Write("Enter Contractor Number (e.g., 123-A): ");
+                string number = Console.ReadLine();
+
+                Console.Write("Enter Start Date (MM/DD/YYYY): ");
+                string startDate = Console.ReadLine();
+
+                int shift = 1;
+                while (true)
+                {
+                    Console.Write("Enter Shift (1 for Day, 2 for Night): ");
+                    if (int.TryParse(Console.ReadLine(), out shift) && (shift == 1 || shift == 2))
+                    {
+                        break;
+                    }
+                    Console.WriteLine("Invalid input. Please enter 1 or 2.");
+                }
+
+                double payRate = 0.0;
+                while (true)
+                {
+                    Console.Write("Enter Hourly Pay Rate ($): ");
+                    if (double.TryParse(Console.ReadLine(), out payRate) && payRate >= 0)
+                    {
+                        break;
+                    }
+                    Console.WriteLine("Invalid input. Please enter a valid positive number.");
+                }
+
+                // Object Instantiation
+                Subcontractor sub = new Subcontractor(name, number, startDate, shift, payRate);
+                subcontractors.Add(sub);
+
+                Console.Write("\nWould you like to add another subcontractor? (Y/N): ");
+                string response = Console.ReadLine().Trim().ToUpper();
+                if (response != "Y")
+                {
+                    keepAdding = false;
+                }
+                Console.WriteLine();
+            }
+
+            // Display Results and Calculate Pay
+            Console.WriteLine("\n==================================================");
+            Console.WriteLine("             SUBCONTRACTOR SUMMARY                ");
+            Console.WriteLine("==================================================");
+
+            for (int i = 0; i < subcontractors.Count; i++)
+            {
+                Subcontractor sub = subcontractors[i];
+                Console.WriteLine($"\nSubcontractor #{i + 1}");
+                Console.WriteLine($"Name:           {sub.Name}");
+                Console.WriteLine($"Number:         {sub.Number}");
+                Console.WriteLine($"Start Date:     {sub.StartDate}");
+                Console.WriteLine($"Shift:          {(sub.Shift == 1 ? "Day (Shift 1)" : "Night (Shift 2)")}");
+                Console.WriteLine($"Hourly Rate:    ${sub.HourlyPayRate:F2}");
+
+                Console.Write("Enter hours worked for this pay period: ");
+                float hours;
+                while (!float.TryParse(Console.ReadLine(), out hours) || hours < 0)
+                {
+                    Console.Write("Invalid entry. Enter hours worked: ");
+                }
+
+                float calculatedPay = sub.ComputePay(hours);
+                Console.WriteLine($"Total Calculated Pay: ${calculatedPay:F2}");
+                if (sub.Shift == 2)
+                {
+                    Console.WriteLine("*(Includes 3% Night Shift Differential)*");
+                }
+            }
+
+            Console.WriteLine("\n==================================================");
+            Console.WriteLine("Press any key to exit...");
+            Console.ReadKey();
+        }
+    }
+}
