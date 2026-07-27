@@ -5,7 +5,7 @@ namespace ContractorProject
 {
     /// <summary>
     /// Base class representing a general Contractor.
-    /// Meets PLO2-4 (3+ attributes), PLO2-2 (Constructor), and PLO2-3 (Accessors/Mutators).
+    /// Encapsulates basic contractor metadata.
     /// </summary>
     public class Contractor
     {
@@ -34,13 +34,13 @@ namespace ContractorProject
         public string Name
         {
             get { return name; }
-            set { name = value; }
+            set { name = string.IsNullOrWhiteSpace(value) ? "Unknown" : value; }
         }
 
         public string Number
         {
             get { return number; }
-            set { number = value; }
+            set { number = string.IsNullOrWhiteSpace(value) ? "000-A" : value; }
         }
 
         public string StartDate
@@ -52,7 +52,6 @@ namespace ContractorProject
 
     /// <summary>
     /// Derived class representing a Subcontractor with pay differential calculations.
-    /// Meets PLO-3-4 (Derived Sub-Class with additional attributes and functionality).
     /// </summary>
     public class Subcontractor : Contractor
     {
@@ -92,11 +91,11 @@ namespace ContractorProject
         public double HourlyPayRate
         {
             get { return hourlyPayRate; }
-            set { hourlyPayRate = value < 0 ? 0 : value; }
+            set { hourlyPayRate = value < 0 ? 0.0 : value; }
         }
 
         /// <summary>
-        /// Computes base pay or applies a 3% shift differential for night shift (Shift 2).
+        /// Computes total pay applying a 3% shift differential for night shift (Shift 2).
         /// </summary>
         /// <param name="hoursWorked">Number of hours worked</param>
         /// <returns>Total calculated pay as a float</returns>
@@ -104,15 +103,15 @@ namespace ContractorProject
         {
             if (hoursWorked < 0) hoursWorked = 0;
 
-            double totalPay = hourlyPayRate * hoursWorked;
+            double effectiveRate = hourlyPayRate;
 
-            // Apply 3% shift differential for Night shift (2)
+            // Apply 3% shift differential for Night shift (Shift 2)
             if (shift == 2)
             {
-                totalPay *= 1.03;
+                effectiveRate *= 1.03;
             }
 
-            return (float)totalPay;
+            return (float)(effectiveRate * hoursWorked);
         }
     }
 
@@ -124,10 +123,10 @@ namespace ContractorProject
             bool keepAdding = true;
 
             Console.WriteLine("==================================================");
-            Console.WriteLine("      CONTRACTOR MANAGEMENT SYSTEM                ");
+            Console.WriteLine("       CONTRACTOR MANAGEMENT SYSTEM               ");
             Console.WriteLine("==================================================\n");
 
-            // Repetition Control Structure allowing creation of as many instances as needed
+            // Loop allowing creation of as many instances as needed
             while (keepAdding)
             {
                 Console.WriteLine("--- Enter New Subcontractor Information ---");
@@ -138,9 +137,22 @@ namespace ContractorProject
                 Console.Write("Enter Contractor Number (e.g., 123-A): ");
                 string number = Console.ReadLine();
 
-                Console.Write("Enter Start Date (MM/DD/YYYY): ");
-                string startDate = Console.ReadLine();
+                // Validate Start Date
+                string startDate;
+                DateTime parsedDate;
+                while (true)
+                {
+                    Console.Write("Enter Start Date (MM/DD/YYYY): ");
+                    startDate = Console.ReadLine();
+                    if (DateTime.TryParse(startDate, out parsedDate))
+                    {
+                        startDate = parsedDate.ToString("MM/dd/yyyy");
+                        break;
+                    }
+                    Console.WriteLine("Invalid date format. Please try again.");
+                }
 
+                // Validate Shift
                 int shift = 1;
                 while (true)
                 {
@@ -152,6 +164,7 @@ namespace ContractorProject
                     Console.WriteLine("Invalid input. Please enter 1 or 2.");
                 }
 
+                // Validate Hourly Pay Rate
                 double payRate = 0.0;
                 while (true)
                 {
@@ -163,13 +176,13 @@ namespace ContractorProject
                     Console.WriteLine("Invalid input. Please enter a valid positive number.");
                 }
 
-                // Object Instantiation
+                // Instantiate and Add Subcontractor Object
                 Subcontractor sub = new Subcontractor(name, number, startDate, shift, payRate);
                 subcontractors.Add(sub);
 
                 Console.Write("\nWould you like to add another subcontractor? (Y/N): ");
                 string response = Console.ReadLine().Trim().ToUpper();
-                if (response != "Y")
+                if (response != "Y" && response != "YES")
                 {
                     keepAdding = false;
                 }
@@ -189,17 +202,21 @@ namespace ContractorProject
                 Console.WriteLine($"Number:         {sub.Number}");
                 Console.WriteLine($"Start Date:     {sub.StartDate}");
                 Console.WriteLine($"Shift:          {(sub.Shift == 1 ? "Day (Shift 1)" : "Night (Shift 2)")}");
-                Console.WriteLine($"Hourly Rate:    ${sub.HourlyPayRate:F2}");
+                Console.WriteLine($"Hourly Rate:    {sub.HourlyPayRate:C}/hr");
 
-                Console.Write("Enter hours worked for this pay period: ");
                 float hours;
-                while (!float.TryParse(Console.ReadLine(), out hours) || hours < 0)
+                while (true)
                 {
-                    Console.Write("Invalid entry. Enter hours worked: ");
+                    Console.Write("Enter hours worked for this pay period: ");
+                    if (float.TryParse(Console.ReadLine(), out hours) && hours >= 0)
+                    {
+                        break;
+                    }
+                    Console.WriteLine("Invalid input. Please enter a positive number.");
                 }
 
                 float calculatedPay = sub.ComputePay(hours);
-                Console.WriteLine($"Total Calculated Pay: ${calculatedPay:F2}");
+                Console.WriteLine($"Total Calculated Pay: {calculatedPay:C}");
                 if (sub.Shift == 2)
                 {
                     Console.WriteLine("*(Includes 3% Night Shift Differential)*");
